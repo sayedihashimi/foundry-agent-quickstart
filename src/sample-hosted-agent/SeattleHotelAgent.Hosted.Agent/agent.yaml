@@ -1,23 +1,9 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/microsoft/AgentSchema/refs/heads/main/schemas/v1.0/ContainerAgent.yaml
-
 kind: hosted
 name: SeattleHotelConcierge
-description: |
-    An AI hotel booking agent for Seattle. Can search hotels, check availability,
-    and book rooms using natural language via the OpenAI Responses protocol.
-metadata:
-    authors:
-        - Sayed Ibrahim Hashimi
-    tags:
-        - Azure AI AgentServer
-        - Microsoft Agent Framework
-        - Hotel Booking
-        - Seattle
 protocols:
-    - protocol: responses
-      version: v1
-environment_variables:
-    - name: AZURE_OPENAI_ENDPOINT
-      value: ${AZURE_OPENAI_ENDPOINT}
-    - name: AZURE_OPENAI_DEPLOYMENT_NAME
-      value: chat
+  - protocol: responses
+    version: 1.0.0
+resources:
+  cpu: "0.25"
+  memory: 0.5Gi

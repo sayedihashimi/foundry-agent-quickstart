@@ -1,19 +1,20 @@
-using Azure.AI.AgentServer.AgentFramework.Extensions;
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Azure.AI.OpenAI;
+using Azure.AI.Projects;
+using Azure.Core;
 using Azure.Identity;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Foundry.Hosting;
+using Microsoft.Extensions.AI;
 using SeattleHotelAgent.Hosted.Agent.Tools;
 
-var openAiEndpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT")
-    ?? throw new InvalidOperationException("AZURE_OPENAI_ENDPOINT is not set.");
-var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME") ?? "chat";
-var tenantId = Environment.GetEnvironmentVariable("AZURE_AI_TENANT_ID");
+string endpoint = Environment.GetEnvironmentVariable("AZURE_AI_PROJECT_ENDPOINT")
+    ?? throw new InvalidOperationException("AZURE_AI_PROJECT_ENDPOINT is not set.");
+string deploymentName = Environment.GetEnvironmentVariable("AZURE_AI_MODEL_DEPLOYMENT_NAME") ?? "chat";
 
-var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-{
-    TenantId = tenantId
-});
+// Chained credential: try a temporary dev token first (for local Docker debugging),
+// then fall back to DefaultAzureCredential (for local dev / managed identity in production).
+TokenCredential credential = new ChainedTokenCredential(
+    new DevTemporaryTokenCredential(),
+    new DefaultAzureCredential());
 
 // Register hotel tools for function calling
 var tools = new AIFunction[]
@@ -24,38 +25,76 @@ var tools = new AIFunction[]
     AIFunctionFactory.Create(HotelTools.BookRoom)
 };
 
-var chatClient = new AzureOpenAIClient(new Uri(openAiEndpoint), credential)
-    .GetChatClient(deploymentName)
-    .AsIChatClient()
-    .AsBuilder()
-    .UseFunctionInvocation()
-    .UseOpenTelemetry(sourceName: "SeattleHotelAgent", configure: cfg => cfg.EnableSensitiveData = true)
-    .Build();
+AIAgent agent = new AIProjectClient(new Uri(endpoint), credential)
+    .AsAIAgent(
+        model: deploymentName,
+        instructions: """
+            You are the Seattle Hotel Concierge, a friendly and knowledgeable AI assistant that helps
+            travelers find and book hotels in Seattle, Washington.
 
-var agent = new ChatClientAgent(chatClient,
-    name: "SeattleHotelConcierge",
-    instructions: """
-        You are the Seattle Hotel Concierge, a friendly and knowledgeable AI assistant that helps
-        travelers find and book hotels in Seattle, Washington.
+            Your capabilities:
+            - Search for hotels by neighborhood, star rating, price, and guest count
+            - Provide detailed information about specific hotels
+            - Check room availability for specific dates
+            - Book hotel rooms
 
-        Your capabilities:
-        - Search for hotels by neighborhood, star rating, price, and guest count
-        - Provide detailed information about specific hotels
-        - Check room availability for specific dates
-        - Book hotel rooms
+            Guidelines:
+            - Always be warm and welcoming — Seattle is a great city to visit!
+            - When users ask vague questions, help narrow down their preferences
+            - Suggest neighborhoods based on what they want to do (e.g., Pike Place for food lovers,
+              Capitol Hill for nightlife, Ballard for breweries, Fremont for quirky arts)
+            - Always confirm booking details before finalizing
+            - Mention relevant amenities that match what the user seems to care about
+            - If dates aren't provided, ask for them before checking availability
+            """,
+        name: Environment.GetEnvironmentVariable("AGENT_NAME") ?? "SeattleHotelConcierge",
+        description: "A hotel booking agent for Seattle with search, availability, and booking tools",
+        tools: tools);
 
-        Guidelines:
-        - Always be warm and welcoming — Seattle is a great city to visit!
-        - When users ask vague questions, help narrow down their preferences
-        - Suggest neighborhoods based on what they want to do (e.g., Pike Place for food lovers,
-          Capitol Hill for nightlife, Ballard for breweries, Fremont for quirky arts)
-        - Always confirm booking details before finalizing
-        - Mention relevant amenities that match what the user seems to care about
-        - If dates aren't provided, ask for them before checking availability
-        """,
-    tools: tools)
-    .AsBuilder()
-    .UseOpenTelemetry(sourceName: "SeattleHotelAgent", configure: cfg => cfg.EnableSensitiveData = true)
-    .Build();
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddFoundryResponses(agent);
 
-await agent.RunAIAgentAsync(telemetrySourceName: "SeattleHotelAgent");
+var app = builder.Build();
+app.MapFoundryResponses();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapFoundryResponses("openai/v1");
+}
+
+app.Run();
+
+/// <summary>
+/// A <see cref="TokenCredential"/> for local Docker debugging only.
+/// Reads a pre-fetched bearer token from the <c>AZURE_BEARER_TOKEN</c> environment variable.
+///
+/// Generate a token on your host and pass it to the container:
+///   export AZURE_BEARER_TOKEN=$(az account get-access-token --resource https://ai.azure.com --query accessToken -o tsv)
+///   docker run -e AZURE_BEARER_TOKEN=$AZURE_BEARER_TOKEN ...
+/// </summary>
+internal sealed class DevTemporaryTokenCredential : TokenCredential
+{
+    private const string EnvironmentVariable = "AZURE_BEARER_TOKEN";
+    private readonly string? _token;
+
+    public DevTemporaryTokenCredential()
+    {
+        _token = Environment.GetEnvironmentVariable(EnvironmentVariable);
+    }
+
+    public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
+        => GetAccessToken();
+
+    public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+        => new(GetAccessToken());
+
+    private AccessToken GetAccessToken()
+    {
+        if (string.IsNullOrEmpty(_token) || _token == "DefaultAzureCredential")
+        {
+            throw new CredentialUnavailableException($"{EnvironmentVariable} environment variable is not set.");
+        }
+
+        return new AccessToken(_token, DateTimeOffset.UtcNow.AddHours(1));
+    }
+}

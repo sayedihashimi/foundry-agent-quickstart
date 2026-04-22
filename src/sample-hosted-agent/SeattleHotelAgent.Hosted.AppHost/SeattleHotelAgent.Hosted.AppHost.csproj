@@ -1,11 +1,11 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.2.1">
+<Project Sdk="Aspire.AppHost.Sdk/13.3.0-preview.1.26222.4">
 
   <ItemGroup>
     <ProjectReference Include="..\SeattleHotelAgent.Hosted.Agent\SeattleHotelAgent.Hosted.Agent.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.Foundry" Version="13.2.1-preview.1.26180.6" />
+    <PackageReference Include="Aspire.Hosting.Foundry" Version="13.3.0-preview.1.26222.4" />
   </ItemGroup>
 
   <PropertyGroup>
