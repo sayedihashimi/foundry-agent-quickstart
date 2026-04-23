@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Azure.AI.Projects;
 using Azure.Core;
 using Azure.Identity;
@@ -6,9 +7,21 @@ using Microsoft.Agents.AI.Foundry.Hosting;
 using Microsoft.Extensions.AI;
 using SeattleHotelAgent.Hosted.Agent.Tools;
 
-string endpoint = Environment.GetEnvironmentVariable("AZURE_AI_PROJECT_ENDPOINT")
-    ?? throw new InvalidOperationException("AZURE_AI_PROJECT_ENDPOINT is not set.");
-string deploymentName = Environment.GetEnvironmentVariable("AZURE_AI_MODEL_DEPLOYMENT_NAME") ?? "chat";
+string projectConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__hotel-project")
+    ?? throw new InvalidOperationException("ConnectionStrings__hotel-project is not set.");
+string chatConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__chat")
+    ?? throw new InvalidOperationException("ConnectionStrings__chat is not set.");
+
+DbConnectionStringBuilder projectConnectionBuilder = new() { ConnectionString = projectConnectionString };
+DbConnectionStringBuilder chatConnectionBuilder = new() { ConnectionString = chatConnectionString };
+
+string projectEndpoint = GetRequiredConnectionValue(projectConnectionBuilder, "Endpoint");
+string deploymentName = GetRequiredConnectionValue(chatConnectionBuilder, "Deployment");
+
+if (!Uri.TryCreate(projectEndpoint, UriKind.Absolute, out Uri? projectUri) || projectUri is null)
+{
+    throw new InvalidOperationException("ConnectionStrings__hotel-project contains an invalid Endpoint value.");
+}
 
 // Chained credential: try a temporary dev token first (for local Docker debugging),
 // then fall back to DefaultAzureCredential (for local dev / managed identity in production).
@@ -25,7 +38,7 @@ var tools = new AIFunction[]
     AIFunctionFactory.Create(HotelTools.BookRoom)
 };
 
-AIAgent agent = new AIProjectClient(new Uri(endpoint), credential)
+AIAgent agent = new AIProjectClient(projectUri, credential)
     .AsAIAgent(
         model: deploymentName,
         instructions: """
@@ -47,15 +60,20 @@ AIAgent agent = new AIProjectClient(new Uri(endpoint), credential)
             - Mention relevant amenities that match what the user seems to care about
             - If dates aren't provided, ask for them before checking availability
             """,
-        name: Environment.GetEnvironmentVariable("AGENT_NAME") ?? "SeattleHotelConcierge",
+        name: "SeattleHotelConcierge",
         description: "A hotel booking agent for Seattle with search, availability, and booking tools",
         tools: tools);
 
+string port = Environment.GetEnvironmentVariable("DEFAULT_AD_PORT") ?? "8088";
+
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseUrls($"http://+:{port}");
 builder.Services.AddFoundryResponses(agent);
 
 var app = builder.Build();
 app.MapFoundryResponses();
+app.MapGet("/liveness", () => Results.Ok("Healthy"));
+app.MapGet("/readiness", () => Results.Ok("Ready"));
 
 if (app.Environment.IsDevelopment())
 {
@@ -63,6 +81,23 @@ if (app.Environment.IsDevelopment())
 }
 
 app.Run();
+
+string GetRequiredConnectionValue(DbConnectionStringBuilder connectionBuilder, string key)
+{
+    if (!connectionBuilder.TryGetValue(key, out object? rawValue) || rawValue is null)
+    {
+        throw new InvalidOperationException($"Connection string is missing '{key}'.");
+    }
+
+    string? value = rawValue.ToString();
+
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        throw new InvalidOperationException($"Connection string has an empty '{key}' value.");
+    }
+
+    return value;
+}
 
 /// <summary>
 /// A <see cref="TokenCredential"/> for local Docker debugging only.

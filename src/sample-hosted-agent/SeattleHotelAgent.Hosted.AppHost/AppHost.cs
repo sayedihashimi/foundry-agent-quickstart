@@ -1,11 +1,14 @@
+using Aspire.Hosting.Foundry;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-var projectEndpoint = builder.AddParameter("azure-ai-project-endpoint", secret: true);
-var modelDeployment = builder.AddParameter("azure-ai-model-deployment", "chat");
+var foundry = builder.AddFoundry("hotel-foundry");
+var project = foundry.AddProject("hotel-project");
+var chat = project.AddModelDeployment("chat", FoundryModel.OpenAI.Gpt4oMini);
 
 builder.AddProject<Projects.SeattleHotelAgent_Hosted_Agent>("hotel-agent")
-    .WithEnvironment("AZURE_AI_PROJECT_ENDPOINT", projectEndpoint)
-    .WithEnvironment("AZURE_AI_MODEL_DEPLOYMENT_NAME", modelDeployment)
-    .PublishAsHostedAgent();
+    .WithReference(project)
+    .WithReference(chat).WaitFor(chat)
+    .PublishAsHostedAgent(project);
 
 builder.Build().Run();
