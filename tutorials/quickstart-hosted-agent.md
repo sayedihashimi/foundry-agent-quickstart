@@ -49,7 +49,7 @@ dotnet new aspire -n SeattleHotelAgent.Hosted -o .
 This creates the AppHost and ServiceDefaults projects. Now create the agent project as a web application and wire it up to the solution.
 
 ```
-dotnet new web -n SeattleHotelAgent.Hosted.Agent -o SeattleHotelAgent.Hosted.Agent
+dotnet new web -n SeattleHotelAgent.Hosted.Agent -o SeattleHotelAgent.Hosted.Agent -f net10.0
 dotnet sln add SeattleHotelAgent.Hosted.Agent
 dotnet add SeattleHotelAgent.Hosted.Agent reference SeattleHotelAgent.Hosted.ServiceDefaults
 dotnet add SeattleHotelAgent.Hosted.AppHost reference SeattleHotelAgent.Hosted.Agent
