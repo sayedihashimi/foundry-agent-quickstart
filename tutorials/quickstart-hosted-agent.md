@@ -77,7 +77,7 @@ This will update the `Aspire.AppHost.Sdk` version and add a `Aspire.Hosting.Foun
 Now add the Foundry hosting package to the AppHost.
 
 ```
-dotnet add SeattleHotelAgent.Hosted.AppHost package Aspire.Hosting.Foundry
+dotnet add SeattleHotelAgent.Hosted.AppHost package Aspire.Hosting.Foundry --prerelease
 ```
 
 Build the solution to ensure everything is configured correctly.
