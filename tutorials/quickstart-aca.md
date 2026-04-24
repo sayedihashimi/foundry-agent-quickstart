@@ -1,10 +1,10 @@
-# Build an AI Hotel Booking Agent with .NET Aspire and Azure AI Foundry
+# Build an AI Hotel Booking Agent with Aspire and Azure AI Foundry
 
-In this tutorial we will build an AI-powered hotel booking agent using C#, .NET Aspire, and Azure AI Foundry. The agent can search for hotels, check availability, and book rooms in Seattle using natural language. To get started you will need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli), and the [Azure Developer CLI (azd)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd). The completed code for this tutorial can be found at [foundry-agent-quickstart](https://github.com/sayedihashimi/foundry-agent-quickstart).
+In this tutorial we will build an AI-powered hotel booking agent using C#, Aspire, and Azure AI Foundry. The agent can search for hotels, check availability, and book rooms in Seattle using natural language. To get started you will need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli), and the [Azure Developer CLI (azd)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd). The completed code for this tutorial can be found at [foundry-agent-quickstart](https://github.com/sayedihashimi/foundry-agent-quickstart).
 
 In this tutorial we will cover the following.
 
-- Creating a .NET Aspire solution
+- Creating an Aspire solution
 - Provisioning Azure AI Foundry resources
 - Creating hotel data and AI tool functions
 - Wiring up the agent with Microsoft.Extensions.AI
@@ -31,7 +31,7 @@ azd auth login
 
 ## Getting started – creating the Aspire solution
 
-To get started we need to create a new .NET Aspire solution. In this tutorial we will use the Aspire Empty App template and then add an API project to it. Open a terminal and run the following commands.
+To get started we need to create a new Aspire solution. In this tutorial we will use the Aspire Empty App template and then add an API project to it. Open a terminal and run the following commands.
 
 ```
 mkdir SeattleHotelAgent
@@ -553,13 +553,13 @@ Invoke-RestMethod -Uri "https://YOUR-APP.azurecontainerapps.io/api/chat" -Method
 
 ## Summary
 
-In this tutorial we created an AI-powered hotel booking agent using .NET Aspire and Azure AI Foundry. We covered how to provision Azure AI resources, create tool functions that the model can call, wire up the agent using Microsoft.Extensions.AI, and deploy the app to Azure Container Apps.
+In this tutorial we created an AI-powered hotel booking agent using Aspire and Azure AI Foundry. We covered how to provision Azure AI resources, create tool functions that the model can call, wire up the agent using Microsoft.Extensions.AI, and deploy the app to Azure Container Apps.
 
 The key technologies we used are summarized below.
 
 | Technology | Purpose |
 |---|---|
-| [.NET Aspire](https://learn.microsoft.com/dotnet/aspire) | Service orchestration, OpenTelemetry, health checks |
+| [Aspire](https://aspire.dev/) | Service orchestration, OpenTelemetry, health checks |
 | [Azure AI Foundry](https://learn.microsoft.com/azure/ai-foundry) | GPT-4o-mini model inference |
 | [Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/ai-extensions) | `IChatClient` abstraction, tool/function calling |
 | [Azure.AI.OpenAI](https://www.nuget.org/packages/Azure.AI.OpenAI) | Azure OpenAI SDK |

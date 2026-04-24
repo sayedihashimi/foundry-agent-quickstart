@@ -50,7 +50,7 @@ Invoke-RestMethod -Uri "http://localhost:PORT/api/chat" -Method Post `
 | [Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/ai-extensions) | `IChatClient` abstraction, tool/function calling |
 | [Azure.AI.OpenAI](https://www.nuget.org/packages/Azure.AI.OpenAI) | Azure OpenAI SDK |
 | [DefaultAzureCredential](https://learn.microsoft.com/dotnet/azure/sdk/authentication) | Keyless authentication |
-| [.NET Aspire](https://learn.microsoft.com/dotnet/aspire) | Service orchestration, OpenTelemetry (ACA and hosted-agent samples) |
+| [Aspire](https://aspire.dev/) | Service orchestration, OpenTelemetry (ACA and hosted-agent samples) |
 | [Azure AI AgentServer](https://learn.microsoft.com/dotnet/api/overview/azure/ai.agentserver.agentframework-readme) | Responses protocol server (hosted-agent samples) |
 
 ## API Endpoints

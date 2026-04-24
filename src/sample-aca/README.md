@@ -7,7 +7,7 @@ A .NET 10 Aspire app with an Azure AI Foundry-powered hotel booking assistant fo
 - **Microsoft.Extensions.AI (MEAI)** — Model abstraction (`IChatClient`)
 - **Azure.AI.OpenAI** — Azure OpenAI SDK with `DefaultAzureCredential`
 - **Azure AI Foundry** — GPT-4o-mini model inference
-- **.NET Aspire** — Service orchestration, OpenTelemetry, health checks
+- **Aspire** — Service orchestration, OpenTelemetry, health checks
 - **Local C# tools** — Hotel search, availability, booking via `AIFunctionFactory`
 
 ## Prerequisites

@@ -1,6 +1,6 @@
 # Seattle Hotel Booking Agent — Hosted Agent (No Aspire)
 
-A .NET 10 console app that runs a hotel booking agent using the Azure AI AgentServer framework and the OpenAI Responses protocol. This is the standalone version — no .NET Aspire, no AppHost, no ServiceDefaults. The agent can search for hotels, check availability, and book rooms in Seattle using natural language.
+A .NET 10 console app that runs a hotel booking agent using the Azure AI AgentServer framework and the OpenAI Responses protocol. This is the standalone version — no Aspire, no AppHost, no ServiceDefaults. The agent can search for hotels, check availability, and book rooms in Seattle using natural language.
 
 ## Architecture
 

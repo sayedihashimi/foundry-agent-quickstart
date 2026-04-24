@@ -5,7 +5,7 @@ name: SeattleHotelConcierge
 description: |
     An AI hotel booking agent for Seattle. Can search hotels, check availability,
     and book rooms using natural language via the OpenAI Responses protocol.
-    This is the standalone version without .NET Aspire.
+    This is the standalone version without Aspire.
 metadata:
     authors:
         - Sayed Ibrahim Hashimi

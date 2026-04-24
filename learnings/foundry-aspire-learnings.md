@@ -1,4 +1,4 @@
-# Learnings: Building an Azure AI Foundry Agent with .NET Aspire
+# Learnings: Building an Azure AI Foundry Agent with Aspire
 
 These learnings were captured during the development of the Seattle Hotel Booking Agent.
 They should be used when writing the Quick Start tutorial.

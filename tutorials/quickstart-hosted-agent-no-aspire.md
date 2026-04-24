@@ -1,6 +1,6 @@
 # Build a Foundry Hosted Agent Without Aspire
 
-In this tutorial we will build a hotel booking agent that runs as a Foundry Hosted Agent using the OpenAI Responses protocol — without .NET Aspire. This is a companion to the [Aspire-based hosted agent tutorial](quickstart-hosted-agent.md). It uses the same hotel data and tools, but as a single standalone console project with no AppHost or ServiceDefaults. The completed code for this tutorial can be found at [foundry-agent-quickstart](https://github.com/sayedihashimi/foundry-agent-quickstart).
+In this tutorial we will build a hotel booking agent that runs as a Foundry Hosted Agent using the OpenAI Responses protocol — without Aspire. This is a companion to the [Aspire-based hosted agent tutorial](quickstart-hosted-agent.md). It uses the same hotel data and tools, but as a single standalone console project with no AppHost or ServiceDefaults. The completed code for this tutorial can be found at [foundry-agent-quickstart](https://github.com/sayedihashimi/foundry-agent-quickstart).
 
 In this tutorial we will cover the following.
 
@@ -488,7 +488,7 @@ The `agent.yaml` file is the Foundry Agent Service manifest that describes the a
 
 ## Summary
 
-In this tutorial we built a Foundry Hosted Agent using the Responses protocol — without any .NET Aspire dependencies. The entire app is a single console project that sets up a `ChatClientAgent` and calls `RunAIAgentAsync()`.
+In this tutorial we built a Foundry Hosted Agent using the Responses protocol — without any Aspire dependencies. The entire app is a single console project that sets up a `ChatClientAgent` and calls `RunAIAgentAsync()`.
 
 The key technologies we used are summarized below.
 

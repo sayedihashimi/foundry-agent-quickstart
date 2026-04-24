@@ -1,10 +1,10 @@
-# Build and Deploy a Foundry Hosted Agent with .NET Aspire
+# Build and Deploy a Foundry Hosted Agent with Aspire
 
-In this tutorial we will build a hotel booking agent that runs as a Foundry Hosted Agent using the [Responses protocol](https://platform.openai.com/docs/api-reference/responses). We will use [.NET Aspire](https://aspire.dev/) to orchestrate the app locally, provision Azure resources declaratively, and deploy the agent to [Microsoft Foundry](https://learn.microsoft.com/azure/foundry/what-is-foundry) as a hosted container agent. The completed code for this tutorial can be found at [foundry-agent-quickstart](https://github.com/sayedihashimi/foundry-agent-quickstart/tree/main/src/sample-hosted-agent).
+In this tutorial we will build a hotel booking agent that runs as a Foundry Hosted Agent using the [Responses protocol](https://platform.openai.com/docs/api-reference/responses). We will use [Aspire](https://aspire.dev/) to orchestrate the app locally, provision Azure resources declaratively, and deploy the agent to [Microsoft Foundry](https://learn.microsoft.com/azure/foundry/what-is-foundry) as a hosted container agent. The completed code for this tutorial can be found at [foundry-agent-quickstart](https://github.com/sayedihashimi/foundry-agent-quickstart/tree/main/src/sample-hosted-agent).
 
 In this tutorial we will cover the following.
 
-- Creating a .NET Aspire solution with a web-based agent project
+- Creating an Aspire solution with a web-based agent project
 - Defining Azure AI Foundry resources declaratively in the AppHost
 - Building hotel data models and AI tool functions
 - Wiring up the agent with the Foundry Hosting library and the Responses protocol
@@ -38,7 +38,7 @@ You do not need to create any Azure resources ahead of time. Aspire will provisi
 
 ## Getting started — creating the Aspire solution
 
-To get started we need to create a new .NET Aspire solution. Open a terminal and run the following commands.
+To get started we need to create a new Aspire solution. Open a terminal and run the following commands.
 
 ```
 mkdir SeattleHotelAgent.Hosted
@@ -808,7 +808,7 @@ You can also test the agent directly in the Foundry portal playground by navigat
 
 ## Summary
 
-In this tutorial we built a Foundry Hosted Agent using .NET Aspire and the Microsoft Agent Framework. We used Aspire's declarative resource model to provision all Azure resources, and deployed the agent as a hosted container to Microsoft Foundry.
+In this tutorial we built a Foundry Hosted Agent using Aspire and the Microsoft Agent Framework. We used Aspire's declarative resource model to provision all Azure resources, and deployed the agent as a hosted container to Microsoft Foundry.
 
 | Technology | Purpose |
 |---|---|
