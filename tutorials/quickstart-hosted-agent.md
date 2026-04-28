@@ -704,66 +704,34 @@ Build the solution to make sure everything compiles.
 dotnet build
 ```
 
-## Running the agent locally
+## Deploying to Foundry
 
-To run the agent locally, you need to be logged in to Azure so that Aspire can provision the Foundry resources.
+Before running the agent locally, we need to deploy the Azure resources. The `aspire deploy` command provisions everything — the AI Foundry account, project, model deployment, container registry — and deploys the agent container to Foundry.
+
+Make sure you are logged in to Azure and that Docker Desktop is running.
 
 ```powershell
 az login
 ```
 
-Now start the app with `aspire run`.
-
-```powershell
-aspire run --apphost SeattleHotelAgent.Hosted.AppHost/SeattleHotelAgent.Hosted.AppHost.csproj
-```
-
-The first time you run this, the Aspire dashboard will open and prompt you to configure your Azure tenant, subscription, and resource group. Select the appropriate values and click submit. Aspire will then provision the AI Foundry account, project, and model deployment in Azure. This initial provisioning can take a few minutes.
-
-Once the resources are provisioned, the agent will start automatically. You should see the `hotel-agent` resource transition to **Running** in the Aspire dashboard.
-
-## Testing the agent locally
-
-Open a separate terminal to test the agent. The Responses protocol uses a single `POST /responses` endpoint with an `input` field.
-
-```powershell
-$body = '{"input": "Find me a budget hotel in Ballard for 2 guests, under 200 dollars per night"}'
-$r = Invoke-RestMethod -Uri "http://localhost:8088/responses" -Method POST -Body $body -ContentType "application/json" -TimeoutSec 60
-$r.output | Where-Object { $_.type -eq "message" } | ForEach-Object { $_.content } | ForEach-Object { $_.text }
-```
-
-You should see the agent respond with the Ballard Nordic Lodge recommendation, including the price and amenities. The agent is using the `SearchHotels` tool function behind the scenes to query the in-memory hotel data.
-
-You can also test booking.
-
-```powershell
-$body = '{"input": "Book a Standard Double at ballard-lodge for Jane Doe from 2026-06-01 to 2026-06-03"}'
-$r = Invoke-RestMethod -Uri "http://localhost:8088/responses" -Method POST -Body $body -ContentType "application/json" -TimeoutSec 60
-$r.output | Where-Object { $_.type -eq "message" } | ForEach-Object { $_.content } | ForEach-Object { $_.text }
-```
-
-Stop the app with Ctrl+C when you are done testing locally.
-
-## Deploying to Foundry
-
-Now let's deploy the agent to Microsoft Foundry as a hosted agent. Make sure Docker Desktop is running, then run the following command.
+Now run the deploy command.
 
 ```powershell
 aspire deploy --apphost SeattleHotelAgent.Hosted.AppHost/SeattleHotelAgent.Hosted.AppHost.csproj
 ```
 
-Aspire will prompt you to select your Azure tenant, subscription, and resource group. If you already ran `aspire run`, it will reuse the existing provisioned resources. The deploy process will.
+Aspire will prompt you to select your Azure tenant, subscription, and resource group. Select or create a resource group for your deployment. The deploy process will.
 
 1. Build a Docker image for the agent
-2. Push the image to the Azure Container Registry
-3. Provision the AI Foundry resources (if not already provisioned)
-4. Create a hosted agent version in the Foundry project
+2. Provision the AI Foundry account, project, and model deployment
+3. Create a Container Registry and push the agent image
+4. Deploy the agent as a hosted agent version in the Foundry project
 
-The full deploy typically takes 5–7 minutes on first run.
+The full deploy typically takes 5–7 minutes on first run. When it completes, you should see `Pipeline succeeded` with all steps showing green.
 
 ### Starting the agent in the Foundry portal
 
-After `aspire deploy` completes, you need to manually start the agent version in the Foundry portal. This is a current limitation of the platform.
+After `aspire deploy` completes, you need to manually start the agent version in the Foundry portal. This is a current limitation of the platform — the agent is deployed but not auto-started.
 
 1. Go to [https://ai.azure.com](https://ai.azure.com)
 2. Switch to the **New Foundry** experience if prompted
@@ -773,38 +741,134 @@ After `aspire deploy` completes, you need to manually start the agent version in
 
 You can also use the **Log Stream** button on the same page to view container logs if you need to troubleshoot.
 
-> **Note:** After deploying, you may also need to grant the agent's managed identity the **Cognitive Services OpenAI User** role on the Foundry account. You can do this from the Azure portal under the Foundry account's Access Control (IAM) page, or with the Azure CLI.
->
-> ```powershell
-> # Get the agent's managed identity principal ID from the Foundry portal or ARM API
-> az role assignment create --assignee <agent-principal-id> --role "Cognitive Services OpenAI User" --scope <foundry-account-resource-id>
-> ```
+### Granting permissions to the agent identity
+
+The deployed agent container runs with a managed identity. This identity needs permission to call the model API. You will need to grant it the **Cognitive Services OpenAI Contributor** role on the Foundry account.
+
+First, find the agent's managed identity principal ID.
+
+```powershell
+$rg = "<your-resource-group>"
+az identity list -g $rg --query "[0].{name:name, principalId:principalId}" -o table
+```
+
+Then grant the role.
+
+```powershell
+$principalId = "<principal-id-from-above>"
+$accountId = az resource list -g $rg --resource-type "Microsoft.CognitiveServices/accounts" --query "[0].id" -o tsv
+az role assignment create --assignee $principalId --role "Cognitive Services OpenAI Contributor" --scope $accountId
+```
+
+It can take a minute or two for the role assignment to propagate before the agent can successfully call the model API.
 
 ## Testing the deployed agent
 
-Once the agent is running in Foundry, you can test it via the Responses API. You will need a bearer token scoped to `https://ai.azure.com`.
+Once the agent is started in the Foundry portal and the role assignment has propagated, you can test it via the Responses API. You will need a bearer token scoped to `https://ai.azure.com`.
+
+First, find your project endpoint and agent name.
+
+```powershell
+$rg = "<your-resource-group>"
+$accountName = az resource list -g $rg --resource-type "Microsoft.CognitiveServices/accounts" --query "[0].name" -o tsv
+$endpoint = az cognitiveservices account show -g $rg -n $accountName --query "properties.endpoint" -o tsv
+
+# The AI Foundry API endpoint follows this pattern
+# Replace .cognitiveservices.azure.com with .services.ai.azure.com
+$projectEndpoint = ($endpoint -replace '\.cognitiveservices\.azure\.com', '.services.ai.azure.com') -replace '/$', ''
+$projectEndpoint = "$projectEndpoint/api/projects/hotel-project"
+Write-Host "Project endpoint: $projectEndpoint"
+```
+
+List the agents to find the agent name.
 
 ```powershell
 $token = az account get-access-token --resource "https://ai.azure.com" --query accessToken -o tsv
-$endpoint = "https://<your-foundry-account>.services.ai.azure.com/api/projects/<your-project>"
-$body = '{"input":"Find me a hotel in Ballard under $200","agent_reference":{"type":"agent_reference","name":"<your-agent-name>"}}'
+Invoke-RestMethod -Uri "$projectEndpoint/agents?api-version=v1" `
+    -Headers @{"Authorization"="Bearer $token"} -Method GET
+```
 
-$r = Invoke-RestMethod -Uri "$endpoint/openai/v1/responses" `
+You should see `hotel-agent-ha` in the list. Now send a test message.
+
+```powershell
+$token = az account get-access-token --resource "https://ai.azure.com" --query accessToken -o tsv
+$body = @{
+    input = "Find me a hotel in Ballard under 200 dollars per night for 2 guests"
+    agent_reference = @{ type = "agent_reference"; name = "hotel-agent-ha" }
+} | ConvertTo-Json -Depth 3
+
+$r = Invoke-RestMethod -Uri "$projectEndpoint/openai/v1/responses" `
     -Headers @{"Authorization"="Bearer $token";"Content-Type"="application/json"} `
     -Method POST -Body $body -TimeoutSec 90
 
 $r.output | Where-Object { $_.type -eq "message" } | ForEach-Object { $_.content } | ForEach-Object { $_.text }
 ```
 
-Replace `<your-foundry-account>`, `<your-project>`, and `<your-agent-name>` with the values from your deployment. You can find the agent name by listing agents.
+You should see the agent respond with the Ballard Nordic Lodge recommendation, confirming that the deployed agent is using the local C# tool functions.
+
+You can also test the agent directly in the Foundry portal playground by navigating to your agent and using the built-in chat interface.
+
+## Running the agent locally
+
+Now that the Azure resources are provisioned, you can run the agent locally with `aspire run`. This is useful for development and debugging — the agent runs on your machine but connects to the Azure AI Foundry project for model inference.
 
 ```powershell
-$token = az account get-access-token --resource "https://ai.azure.com" --query accessToken -o tsv
-Invoke-RestMethod -Uri "$endpoint/agents?api-version=v1" `
-    -Headers @{"Authorization"="Bearer $token"} -Method GET
+aspire run --apphost SeattleHotelAgent.Hosted.AppHost/SeattleHotelAgent.Hosted.AppHost.csproj
 ```
 
-You can also test the agent directly in the Foundry portal playground by navigating to your agent and clicking the playground tab.
+The Aspire dashboard will open in your browser. If this is the first time running locally, the dashboard will prompt you to configure your Azure tenant, subscription, and resource group. Select the same values you used during `aspire deploy`. Aspire will connect to the existing Azure resources and start the agent.
+
+Once the `hotel-agent` resource shows **Running** in the dashboard, open a separate terminal to test it.
+
+```powershell
+$body = '{"input": "Find me a budget hotel in Ballard for 2 guests, under 200 dollars per night"}'
+$r = Invoke-RestMethod -Uri "http://localhost:8088/responses" -Method POST -Body $body -ContentType "application/json" -TimeoutSec 60
+$r.output | Where-Object { $_.type -eq "message" } | ForEach-Object { $_.content } | ForEach-Object { $_.text }
+```
+
+You should see the agent respond with the Ballard Nordic Lodge recommendation. You can also test booking.
+
+```powershell
+$body = '{"input": "Book a Standard Double at ballard-lodge for Jane Doe from 2026-06-01 to 2026-06-03"}'
+$r = Invoke-RestMethod -Uri "http://localhost:8088/responses" -Method POST -Body $body -ContentType "application/json" -TimeoutSec 60
+$r.output | Where-Object { $_.type -eq "message" } | ForEach-Object { $_.content } | ForEach-Object { $_.text }
+```
+
+Stop the app with Ctrl+C when you are done testing locally.
+
+## Troubleshooting
+
+### Soft-deleted Cognitive Services accounts block redeployment
+
+If you delete Azure resources and try to redeploy, you may see `CustomDomainInUse` errors. This happens because deleted Cognitive Services accounts are soft-deleted and reserve their subdomain name for 48 hours. To fix this, purge the soft-deleted accounts.
+
+```powershell
+# List soft-deleted accounts
+az cognitiveservices account list-deleted -o table
+
+# Purge a specific account
+az cognitiveservices account purge -l <location> -n <account-name> -g <resource-group>
+```
+
+### Clearing Aspire cached state
+
+Aspire caches deployment state in two locations — dotnet user secrets and the `~/.aspire/deployments` folder. If you need a completely fresh start after deleting Azure resources, clear both.
+
+```powershell
+# Clear user secrets
+dotnet user-secrets clear --project SeattleHotelAgent.Hosted.AppHost
+
+# Clear deployment cache
+Remove-Item -Path "$env:USERPROFILE\.aspire\deployments" -Recurse -Force -ErrorAction SilentlyContinue
+```
+
+### Capability host provisioning errors
+
+If the Foundry account provisioning gets stuck or fails with a `502 Bad Gateway` or `Conflict` error on the capability host, try deploying to a new resource group with a different name. Aspire generates resource names based on the resource group, so a new name avoids conflicts with stale backend state.
+
+### Agent returns PermissionDenied
+
+If the deployed agent returns `HTTP 401 PermissionDenied` when you test it, the agent's managed identity is missing the required role assignment. Grant the `Cognitive Services OpenAI Contributor` role as described in the deployment section above. Role assignments can take a minute or two to propagate.
 
 ## Summary
 
